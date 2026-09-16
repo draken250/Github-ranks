@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Github Ranks — global commit leaderboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">⌥</span>
+        <span class="brand-name">Github Ranks</span>
+      </div>
+      <div class="topbar-actions">
+        <button id="token-btn" class="ghost-btn" title="Add a GitHub token to raise the API rate limit">
+          Rate limit: <span id="rate-limit-label">unknown</span>
+        </button>
+        <a class="ghost-btn" href="CONTRIBUTING.md#add-yourself-to-the-leaderboard" id="repo-link">Add yourself ↗</a>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="filters" aria-label="Filters">
+        <h2>Filters</h2>
+
+        <label class="field">
+          <span>Search</span>
+          <input id="search-input" type="text" placeholder="Name or username…" autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span>Country</span>
+          <select id="country-select">
+            <option value="">All countries</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Region / State</span>
+          <select id="region-select" disabled>
+            <option value="">All regions</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>City</span>
+          <select id="city-select" disabled>
+            <option value="">All cities</option>
+          </select>
+        </label>
+
+        <div class="field">
+          <span>Language</span>
+          <div id="language-list" class="chip-list" aria-label="Language filters"></div>
+        </div>
+
+        <label class="field">
+          <span>Sort by</span>
+          <select id="sort-select">
+            <option value="commits">Commits (est.)</option>
+            <option value="stars">Stars</option>
+            <option value="repos">Public repos</option>
+            <option value="followers">Followers</option>
+          </select>
+        </label>
+
+        <button id="reset-filters" class="ghost-btn full-width">Reset filters</button>
+
+        <p class="filters-note">
+          Data comes from a community-maintained
+          <a href="data/developers.json" target="_blank" rel="noopener">directory</a>
+          plus live stats pulled from the public GitHub API in your browser.
+          Nothing is sent to a server.
+        </p>
+      </aside>
+
+      <section class="board">
+        <div class="board-head">
+          <h1>Leaderboard</h1>
+          <p id="board-subtitle" class="board-subtitle">Loading developers…</p>
+        </div>
+
+        <div id="podium" class="podium" hidden></div>
+
+        <div class="board-card">
+          <div class="board-card-head">
+            <div class="board-card-title">
+              <span id="result-count">—</span> developers
+            </div>
+          </div>
+          <div id="status-banner" class="status-banner" hidden></div>
+          <ol id="leaderboard-list" class="leaderboard-list"></ol>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Open source — everyone is welcome to add themselves or improve the app.
+        See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a> to get started.
+      </p>
+    </footer>
+  </div>
+
+  <dialog id="token-dialog">
+    <form method="dialog" id="token-form">
+      <h3>GitHub personal access token</h3>
+      <p>
+        Unauthenticated requests are limited to 60/hour by GitHub, which is easy to hit with a
+        larger directory. Add a token (no scopes needed — "public_repo" read access is enough)
+        to raise that to 5,000/hour. It is stored only in this browser's
+        <code>localStorage</code> and sent directly to <code>api.github.com</code>, never to any
+        other server.
+      </p>
+      <input id="token-input" type="password" placeholder="ghp_…" autocomplete="off" />
+      <div class="dialog-actions">
+        <button id="token-clear" type="button" class="ghost-btn">Clear</button>
+        <button type="submit" class="primary-btn">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
