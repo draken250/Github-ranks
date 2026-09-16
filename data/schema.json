@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Developer directory entry",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["username", "country"],
+    "additionalProperties": false,
+    "properties": {
+      "username": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$",
+        "description": "GitHub username (case-insensitive, must be a real account)."
+      },
+      "country": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Country the developer is based in."
+      },
+      "region": {
+        "type": "string",
+        "description": "State/province/region. Optional."
+      },
+      "city": {
+        "type": "string",
+        "description": "City. Optional."
+      }
+    }
+  }
+}
