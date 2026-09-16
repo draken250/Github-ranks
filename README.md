@@ -1,14 +1,12 @@
 # Github ranks
 
-**🔗 [Live demo](https://draken250.github.io/Github-ranks/)** — try the "Discover
-developers by location" search in the sidebar (there's a Rwanda 🇷🇼 quick button) to
-see it pull real, live-ranked GitHub developers for any country.
+**🔗 [Live demo](https://draken250.github.io/Github-ranks/)** — search a country or
+city (there's a Rwanda 🇷🇼 quick pick) to see real, live-ranked GitHub developers.
 
-A simple, static leaderboard for GitHub developers — filterable by country, region,
-city, and programming language. No backend, no build step, no curated list: type a
-location and it searches GitHub live for real public profiles that match, then ranks
-them by commits, stars, repos, or followers — all powered by the public GitHub API
-straight from your browser.
+A simple, single-page leaderboard for GitHub developers. No backend, no build step,
+no curated list: type a location, pick how many to pull, and it searches GitHub live
+for real public profiles that match, then ranks them by commits, stars, repos, or
+followers — all powered by the public GitHub API straight from your browser.
 
 ![Leaderboard screenshot, showing the top developers found for Rwanda](docs/screenshot.png)
 
@@ -16,16 +14,15 @@ straight from your browser.
 
 ## Features
 
-- 🔭 **Discover by location** — search GitHub live for up to 100 real developers in any
-  country, region, or city (e.g. type "Rwanda")
-- 🌍 Narrow results further by country → region/state → city
-- 🧑‍💻 Filter by programming language (derived from each developer's public repos)
-- 🔎 Search by name or username
-- 📊 Sort by estimated commits, stars, public repos, or followers
+- 🔭 **Discover by location** — search GitHub live for real developers in any
+  country or city (e.g. type "Rwanda")
+- 🔢 Choose how many to pull — Top 10 / 25 / 50 / 100
+- 🔎 Filter the results by name, sort by estimated commits, stars, repos, or followers
 - 🥇 Podium view for the top 3
+- 🌗 Light and dark theme (follows your system by default, toggle in the top right)
 - 🔑 Optional personal access token (stored only in your browser) to raise the
-  GitHub API rate limit from 60/hour to 5,000/hour — recommended if you want a full
-  "top 100" for a country, since that means ~100-200 API calls
+  GitHub API rate limit from 60/hour to 5,000/hour — recommended for a full "Top 100"
+  pull, since that means ~100-200 API calls
 
 ## Try it
 
@@ -40,8 +37,9 @@ python -m http.server 8000
 
 ## How it works
 
-- The "Discover by location" search calls GitHub's `search/users?q=location:<query>`
-  endpoint to find up to 100 real public profiles matching a location, live.
+- The search bar calls GitHub's `search/users?q=location:<query>` endpoint to find
+  real public profiles matching a location, live, capped at however many you chose
+  to pull.
 - For each of those developers, `app.js` fetches their public profile and repos from
   the GitHub REST API directly from your browser (nothing goes through a server),
   aggregates languages and stars, and estimates a commit count via GitHub's commit
