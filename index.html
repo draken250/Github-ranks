@@ -3,116 +3,77 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Github Ranks — global commit leaderboard</title>
+  <title>Github Ranks — global developer leaderboard</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app">
-    <header class="topbar">
+  <div class="page">
+    <header class="nav">
       <div class="brand">
-        <span class="brand-mark">⌥</span>
+        <span class="brand-mark">✦</span>
         <span class="brand-name">Github Ranks</span>
       </div>
-      <div class="topbar-actions">
-        <button id="token-btn" class="ghost-btn" title="Add a GitHub token to raise the API rate limit">
-          Rate limit: <span id="rate-limit-label">unknown</span>
+      <div class="nav-actions">
+        <button id="theme-toggle" class="icon-btn" type="button" title="Toggle light / dark theme" aria-label="Toggle theme">🌙</button>
+        <button id="token-btn" class="ghost-btn" type="button" title="Add a GitHub token to raise the API rate limit">
+          Rate limit: <span id="rate-limit-label">—</span>
         </button>
-        <a class="ghost-btn" href="CONTRIBUTING.md" id="repo-link">Contribute ↗</a>
+        <a class="cta-btn" href="CONTRIBUTING.md">Contribute</a>
       </div>
     </header>
 
-    <main class="layout">
-      <aside class="filters" aria-label="Filters">
-        <h2>Filters</h2>
+    <section class="hero">
+      <h1 class="hero-title">Discover<span class="dot">.</span> Rank<span class="dot">.</span> <span class="accent">Compare.</span></h1>
+      <p class="hero-sub">Search any country or city and see real GitHub developers ranked live — no sign-up, no curated list.</p>
 
-        <div class="field discover-field">
-          <span>Discover developers by location</span>
-          <div class="discover-row">
-            <input id="discover-input" type="text" placeholder="e.g. Rwanda" autocomplete="off" />
-            <button id="discover-btn" class="primary-btn" type="button">Search</button>
-          </div>
-          <div id="quick-locations" class="chip-list">
-            <button type="button" class="chip quick-chip" data-location="Rwanda">🇷🇼 Rwanda</button>
-          </div>
-          <p class="filters-note">
-            Pulls up to 100 real public GitHub profiles whose location matches, live from
-            GitHub's own search, and adds them to the board below.
-          </p>
-        </div>
+      <form id="discover-form" class="search-pill">
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="discover-input" type="text" placeholder="Search a country or city… e.g. Rwanda" autocomplete="off" />
+        <select id="count-select" class="count-select" title="How many to pull">
+          <option value="10">Top 10</option>
+          <option value="25" selected>Top 25</option>
+          <option value="50">Top 50</option>
+          <option value="100">Top 100</option>
+        </select>
+        <button type="submit" class="search-btn" aria-label="Search">→</button>
+      </form>
 
-        <label class="field">
-          <span>Search</span>
-          <input id="search-input" type="text" placeholder="Name or username…" autocomplete="off" />
-        </label>
+      <div id="quick-locations" class="quick-chips">
+        <button type="button" class="chip" data-location="Rwanda">🇷🇼 Rwanda</button>
+        <button type="button" class="chip" data-location="Kenya">🇰🇪 Kenya</button>
+        <button type="button" class="chip" data-location="Nigeria">🇳🇬 Nigeria</button>
+        <button type="button" class="chip" data-location="United States">🇺🇸 United States</button>
+        <button type="button" class="chip" data-location="India">🇮🇳 India</button>
+        <button type="button" class="chip" data-location="United Kingdom">🇬🇧 United Kingdom</button>
+      </div>
+    </section>
 
-        <label class="field">
-          <span>Country</span>
-          <select id="country-select">
-            <option value="">All countries</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Region / State</span>
-          <select id="region-select" disabled>
-            <option value="">All regions</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>City</span>
-          <select id="city-select" disabled>
-            <option value="">All cities</option>
-          </select>
-        </label>
-
-        <div class="field">
-          <span>Language</span>
-          <div id="language-list" class="chip-list" aria-label="Language filters"></div>
-        </div>
-
-        <label class="field">
-          <span>Sort by</span>
-          <select id="sort-select">
+    <main class="results">
+      <div class="results-head">
+        <p id="board-subtitle" class="board-subtitle">Search a location to see ranked developers.</p>
+        <div class="results-controls">
+          <input id="search-input" type="text" class="mini-input" placeholder="Filter by name…" autocomplete="off" />
+          <select id="sort-select" class="mini-select">
             <option value="commits">Commits (est.)</option>
             <option value="stars">Stars</option>
             <option value="repos">Public repos</option>
             <option value="followers">Followers</option>
           </select>
-        </label>
-
-        <button id="reset-filters" class="ghost-btn full-width">Reset filters</button>
-
-        <p class="filters-note">
-          Everything is pulled live from the public GitHub API in your browser —
-          no curated list, nothing sent to a server.
-        </p>
-      </aside>
-
-      <section class="board">
-        <div class="board-head">
-          <h1>Leaderboard</h1>
-          <p id="board-subtitle" class="board-subtitle">Search a location to see ranked developers.</p>
         </div>
+      </div>
 
-        <div id="podium" class="podium" hidden></div>
+      <div id="status-banner" class="status-banner" hidden></div>
 
-        <div class="board-card">
-          <div class="board-card-head">
-            <div class="board-card-title">
-              <span id="result-count">—</span> developers
-            </div>
-          </div>
-          <div id="status-banner" class="status-banner" hidden></div>
-          <ol id="leaderboard-list" class="leaderboard-list"></ol>
-        </div>
-      </section>
+      <div id="podium" class="podium" hidden></div>
+
+      <ol id="leaderboard-list" class="leaderboard-list"></ol>
     </main>
 
     <footer class="footer">
       <p>
-        Open source — everyone is welcome to add themselves or improve the app.
-        See <a href="CONTRIBUTING.md">CONTRIBUTING.md</a> to get started.
+        Open source —
+        <a href="https://github.com/draken250/Github-ranks" target="_blank" rel="noopener">view on GitHub</a>
+        · <a href="CONTRIBUTING.md">Contribute</a>
       </p>
     </footer>
   </div>
@@ -121,8 +82,8 @@
     <form method="dialog" id="token-form">
       <h3>GitHub personal access token</h3>
       <p>
-        Unauthenticated requests are limited to 60/hour by GitHub, which is easy to hit with a
-        larger directory. Add a token (no scopes needed — "public_repo" read access is enough)
+        Unauthenticated requests are limited to 60/hour by GitHub, which is easy to hit when
+        pulling a full "Top 100". Add a token (no scopes needed — this only reads public data)
         to raise that to 5,000/hour. It is stored only in this browser's
         <code>localStorage</code> and sent directly to <code>api.github.com</code>, never to any
         other server.

@@ -3,6 +3,7 @@
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const MAX_CONCURRENT_REQUESTS = 4;
 const TOKEN_KEY = "ghranks_token";
+const THEME_KEY = "ghranks_theme";
 
 let rateLimited = false;
 
@@ -11,25 +12,15 @@ const state = {
   results: [], // enriched developer stats, successfully fetched
   filters: {
     search: "",
-    country: "",
-    region: "",
-    city: "",
-    languages: new Set(),
   },
   sort: "commits",
 };
 
 const el = {
-  countrySelect: document.getElementById("country-select"),
-  regionSelect: document.getElementById("region-select"),
-  citySelect: document.getElementById("city-select"),
-  languageList: document.getElementById("language-list"),
   searchInput: document.getElementById("search-input"),
   sortSelect: document.getElementById("sort-select"),
-  resetBtn: document.getElementById("reset-filters"),
   podium: document.getElementById("podium"),
   list: document.getElementById("leaderboard-list"),
-  resultCount: document.getElementById("result-count"),
   subtitle: document.getElementById("board-subtitle"),
   statusBanner: document.getElementById("status-banner"),
   rateLimitLabel: document.getElementById("rate-limit-label"),
@@ -38,9 +29,11 @@ const el = {
   tokenForm: document.getElementById("token-form"),
   tokenInput: document.getElementById("token-input"),
   tokenClear: document.getElementById("token-clear"),
+  discoverForm: document.getElementById("discover-form"),
   discoverInput: document.getElementById("discover-input"),
-  discoverBtn: document.getElementById("discover-btn"),
+  countSelect: document.getElementById("count-select"),
   quickLocations: document.getElementById("quick-locations"),
+  themeToggle: document.getElementById("theme-toggle"),
 };
 
 init();
@@ -49,7 +42,31 @@ function init() {
   bindFilterEvents();
   bindTokenDialog();
   bindDiscovery();
+  bindTheme();
   render();
+}
+
+// ---------- Theme ----------
+
+function bindTheme() {
+  applyTheme(localStorage.getItem(THEME_KEY));
+  el.themeToggle.addEventListener("click", () => {
+    const next = isDarkActive() ? "light" : "dark";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  });
+}
+
+function isDarkActive() {
+  const explicit = localStorage.getItem(THEME_KEY);
+  if (explicit) return explicit === "dark";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+function applyTheme(theme) {
+  if (theme) document.documentElement.setAttribute("data-theme", theme);
+  else document.documentElement.removeAttribute("data-theme");
+  el.themeToggle.textContent = isDarkActive() ? "☀️" : "🌙";
 }
 
 // ---------- GitHub API ----------
@@ -110,7 +127,7 @@ function setCached(username, data) {
 
 async function fetchDeveloperStats(entry) {
   const cached = getCached(entry.username);
-  if (cached) return Object.assign({}, cached, locationFields(entry));
+  if (cached) return Object.assign({}, cached, { country: entry.country });
 
   if (rateLimited) return null;
 
@@ -157,7 +174,7 @@ async function fetchDeveloperStats(entry) {
     };
 
     setCached(entry.username, data);
-    return Object.assign({}, data, locationFields(entry));
+    return Object.assign({}, data, { country: entry.country });
   } catch (err) {
     if (err.status === 403 || err.status === 429) {
       rateLimited = true;
@@ -166,13 +183,13 @@ async function fetchDeveloperStats(entry) {
         "error"
       );
     } else if (err.status === 404) {
-      // username in the directory no longer exists on GitHub — skip quietly
+      // profile no longer exists on GitHub — skip quietly
     }
     return null;
   }
 }
 
-async function discoverByLocation(query) {
+async function discoverByLocation(query, count) {
   if (rateLimited) {
     showStatus(
       "GitHub API rate limit already reached — add a personal access token (top right) before discovering more.",
@@ -187,7 +204,7 @@ async function discoverByLocation(query) {
   let searchResult;
   try {
     searchResult = await githubFetch(
-      `https://api.github.com/search/users?q=${encodeURIComponent("location:" + query)}&per_page=100&sort=followers&order=desc`,
+      `https://api.github.com/search/users?q=${encodeURIComponent("location:" + query)}&per_page=${count}&sort=followers&order=desc`,
       { trackRateLimit: false }
     );
   } catch (err) {
@@ -200,7 +217,7 @@ async function discoverByLocation(query) {
   const existingUsernames = new Set(state.entries.map((e) => e.username.toLowerCase()));
   const newEntries = searchResult.items
     .filter((item) => !existingUsernames.has(item.login.toLowerCase()))
-    .map((item) => ({ username: item.login, country: query, region: "", city: "" }));
+    .map((item) => ({ username: item.login, country: query }));
 
   if (newEntries.length === 0) {
     showStatus(`No new developers found for "${query}" (or they're already on the board).`, null);
@@ -210,15 +227,6 @@ async function discoverByLocation(query) {
 
   state.entries.push(...newEntries);
   el.subtitle.textContent = `Found ${searchResult.total_count.toLocaleString()} public profiles matching "${query}" — fetching stats for ${newEntries.length}…`;
-
-  // Jump the filter to this location immediately so results appear as they stream in,
-  // instead of making the user wait for all ~100 profiles to finish fetching.
-  state.filters.country = query;
-  state.filters.region = "";
-  state.filters.city = "";
-  populateLocationOptions();
-  el.countrySelect.value = query;
-  updateRegionOptions();
   render();
 
   let renderQueued = false;
@@ -238,29 +246,27 @@ async function discoverByLocation(query) {
     }
   });
 
-  populateLanguageChips();
   render();
 }
 
 function bindDiscovery() {
   const run = () => {
     const query = el.discoverInput.value.trim();
-    if (query) discoverByLocation(query);
+    const count = Number(el.countSelect.value) || 25;
+    if (query) discoverByLocation(query, count);
   };
-  el.discoverBtn.addEventListener("click", run);
-  el.discoverInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") run();
+  el.discoverForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    run();
   });
   el.quickLocations.addEventListener("click", (e) => {
-    const chip = e.target.closest(".quick-chip");
+    const chip = e.target.closest(".chip");
     if (!chip) return;
     el.discoverInput.value = chip.dataset.location;
-    discoverByLocation(chip.dataset.location);
+    document.querySelectorAll("#quick-locations .chip").forEach((c) => c.classList.remove("active"));
+    chip.classList.add("active");
+    run();
   });
-}
-
-function locationFields(entry) {
-  return { country: entry.country, region: entry.region || "", city: entry.city || "" };
 }
 
 async function fetchAllStats(entries, onEach) {
@@ -286,118 +292,14 @@ async function fetchAllStats(entries, onEach) {
 
 // ---------- Filters ----------
 
-function populateLocationOptions() {
-  const countries = uniqueSorted(state.entries.map((e) => e.country));
-  fillSelect(el.countrySelect, countries, "All countries");
-  updateRegionOptions();
-}
-
-function updateRegionOptions() {
-  const country = state.filters.country;
-  const pool = country ? state.entries.filter((e) => e.country === country) : state.entries;
-  const regions = uniqueSorted(pool.map((e) => e.region).filter(Boolean));
-  fillSelect(el.regionSelect, regions, "All regions");
-  el.regionSelect.disabled = regions.length === 0;
-  updateCityOptions();
-}
-
-function updateCityOptions() {
-  const { country, region } = state.filters;
-  let pool = state.entries;
-  if (country) pool = pool.filter((e) => e.country === country);
-  if (region) pool = pool.filter((e) => e.region === region);
-  const cities = uniqueSorted(pool.map((e) => e.city).filter(Boolean));
-  fillSelect(el.citySelect, cities, "All cities");
-  el.citySelect.disabled = cities.length === 0;
-}
-
-function fillSelect(selectEl, values, placeholder) {
-  const current = selectEl.value;
-  selectEl.innerHTML = "";
-  const opt0 = document.createElement("option");
-  opt0.value = "";
-  opt0.textContent = placeholder;
-  selectEl.appendChild(opt0);
-  for (const v of values) {
-    const opt = document.createElement("option");
-    opt.value = v;
-    opt.textContent = v;
-    selectEl.appendChild(opt);
-  }
-  if (values.includes(current)) selectEl.value = current;
-}
-
-function uniqueSorted(values) {
-  return [...new Set(values)].sort((a, b) => a.localeCompare(b));
-}
-
-function populateLanguageChips() {
-  const counts = new Map();
-  for (const dev of state.results) {
-    for (const lang of dev.languages.slice(0, 5)) {
-      counts.set(lang, (counts.get(lang) || 0) + 1);
-    }
-  }
-  const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 16);
-
-  el.languageList.innerHTML = "";
-  for (const [lang] of top) {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "chip";
-    chip.textContent = lang;
-    chip.addEventListener("click", () => {
-      if (state.filters.languages.has(lang)) {
-        state.filters.languages.delete(lang);
-        chip.classList.remove("active");
-      } else {
-        state.filters.languages.add(lang);
-        chip.classList.add("active");
-      }
-      render();
-    });
-    el.languageList.appendChild(chip);
-  }
-}
-
 function bindFilterEvents() {
   el.searchInput.addEventListener("input", () => {
     state.filters.search = el.searchInput.value.trim().toLowerCase();
     render();
   });
 
-  el.countrySelect.addEventListener("change", () => {
-    state.filters.country = el.countrySelect.value;
-    state.filters.region = "";
-    state.filters.city = "";
-    updateRegionOptions();
-    render();
-  });
-
-  el.regionSelect.addEventListener("change", () => {
-    state.filters.region = el.regionSelect.value;
-    state.filters.city = "";
-    updateCityOptions();
-    render();
-  });
-
-  el.citySelect.addEventListener("change", () => {
-    state.filters.city = el.citySelect.value;
-    render();
-  });
-
   el.sortSelect.addEventListener("change", () => {
     state.sort = el.sortSelect.value;
-    render();
-  });
-
-  el.resetBtn.addEventListener("click", () => {
-    state.filters = { search: "", country: "", region: "", city: "", languages: new Set() };
-    state.sort = "commits";
-    el.searchInput.value = "";
-    el.sortSelect.value = "commits";
-    populateLocationOptions();
-    document.querySelectorAll(".chip.active").forEach((c) => c.classList.remove("active"));
     render();
   });
 }
@@ -419,18 +321,9 @@ function bindTokenDialog() {
 // ---------- Rendering ----------
 
 function getFiltered() {
-  const { search, country, region, city, languages } = state.filters;
-  return state.results.filter((dev) => {
-    if (country && dev.country !== country) return false;
-    if (region && dev.region !== region) return false;
-    if (city && dev.city !== city) return false;
-    if (languages.size > 0 && !dev.languages.some((l) => languages.has(l))) return false;
-    if (search) {
-      const haystack = `${dev.name} ${dev.username}`.toLowerCase();
-      if (!haystack.includes(search)) return false;
-    }
-    return true;
-  });
+  const { search } = state.filters;
+  if (!search) return state.results;
+  return state.results.filter((dev) => `${dev.name} ${dev.username}`.toLowerCase().includes(search));
 }
 
 function sortValue(dev) {
@@ -463,11 +356,10 @@ function sortLabel() {
 function render() {
   const filtered = getFiltered().slice().sort((a, b) => sortValue(b) - sortValue(a));
 
-  el.resultCount.textContent = filtered.length;
   el.subtitle.textContent =
     state.entries.length === 0
       ? "Search a location to see ranked developers."
-      : `${state.results.length} of ${state.entries.length} developers loaded · ranked by ${sortLabel()}`;
+      : `${filtered.length} of ${state.entries.length} developers loaded · ranked by ${sortLabel()}`;
 
   const showPodium = filtered.length >= 3;
   renderPodium(showPodium ? filtered.slice(0, 3) : []);
@@ -500,11 +392,11 @@ function renderPodium(top3) {
 
 function renderList(rest, totalCount) {
   if (state.entries.length === 0) {
-    el.list.innerHTML = `<li class="empty-state">Search a location above (try the 🇷🇼 Rwanda button) to pull real, ranked GitHub developers.</li>`;
+    el.list.innerHTML = `<li class="empty-state">Search a location above (try a quick pick like 🇷🇼 Rwanda) to pull real, ranked GitHub developers.</li>`;
     return;
   }
   if (totalCount === 0) {
-    el.list.innerHTML = `<li class="empty-state">No developers match these filters.</li>`;
+    el.list.innerHTML = `<li class="empty-state">No developers match "${escapeHtml(state.filters.search)}".</li>`;
     return;
   }
   if (state.results.length === 0) {
@@ -520,7 +412,6 @@ function renderList(rest, totalCount) {
         .slice(0, 3)
         .map((l) => `<span class="dev-lang">${escapeHtml(l)}</span>`)
         .join("");
-      const location = [dev.city, dev.region, dev.country].filter(Boolean).join(", ");
       return `
         <li class="dev-row">
           <div class="dev-rank">#${rank}</div>
@@ -528,7 +419,7 @@ function renderList(rest, totalCount) {
           <div class="dev-info">
             <a class="dev-name" href="${dev.htmlUrl}" target="_blank" rel="noopener">${escapeHtml(dev.name)}</a>
             <div class="dev-meta">
-              <span>${escapeHtml(location)}</span>
+              <span>${escapeHtml(dev.country)}</span>
               ${langs}
             </div>
           </div>
