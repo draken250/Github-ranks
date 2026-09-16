@@ -4,6 +4,8 @@ const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const MAX_CONCURRENT_REQUESTS = 4;
 const TOKEN_KEY = "ghranks_token";
 
+let rateLimited = false;
+
 const state = {
   entries: [],
   results: [], // enriched developer stats, successfully fetched
@@ -36,6 +38,9 @@ const el = {
   tokenForm: document.getElementById("token-form"),
   tokenInput: document.getElementById("token-input"),
   tokenClear: document.getElementById("token-clear"),
+  discoverInput: document.getElementById("discover-input"),
+  discoverBtn: document.getElementById("discover-btn"),
+  quickLocations: document.getElementById("quick-locations"),
 };
 
 init();
@@ -43,6 +48,7 @@ init();
 async function init() {
   bindFilterEvents();
   bindTokenDialog();
+  bindDiscovery();
 
   try {
     const res = await fetch("data/developers.json", { cache: "no-store" });
@@ -124,6 +130,8 @@ async function fetchDeveloperStats(entry) {
   const cached = getCached(entry.username);
   if (cached) return Object.assign({}, cached, locationFields(entry));
 
+  if (rateLimited) return null;
+
   try {
     const profile = await githubFetch(`https://api.github.com/users/${entry.username}`);
     const repos = await githubFetch(
@@ -170,6 +178,7 @@ async function fetchDeveloperStats(entry) {
     return Object.assign({}, data, locationFields(entry));
   } catch (err) {
     if (err.status === 403 || err.status === 429) {
+      rateLimited = true;
       showStatus(
         "GitHub API rate limit reached. Add a personal access token (top right) to raise the limit, or wait a bit and reload.",
         "error"
@@ -181,11 +190,98 @@ async function fetchDeveloperStats(entry) {
   }
 }
 
+async function discoverByLocation(query) {
+  if (rateLimited) {
+    showStatus(
+      "GitHub API rate limit already reached — add a personal access token (top right) before discovering more.",
+      "error"
+    );
+    return;
+  }
+
+  el.statusBanner.hidden = true;
+  el.subtitle.textContent = `Searching GitHub for developers located in "${query}"…`;
+
+  let searchResult;
+  try {
+    searchResult = await githubFetch(
+      `https://api.github.com/search/users?q=${encodeURIComponent("location:" + query)}&per_page=100&sort=followers&order=desc`,
+      { trackRateLimit: false }
+    );
+  } catch (err) {
+    if (err.status === 403 || err.status === 429) rateLimited = true;
+    showStatus(`GitHub search failed: ${err.message}`, "error");
+    render();
+    return;
+  }
+
+  const existingUsernames = new Set(state.entries.map((e) => e.username.toLowerCase()));
+  const newEntries = searchResult.items
+    .filter((item) => !existingUsernames.has(item.login.toLowerCase()))
+    .map((item) => ({ username: item.login, country: query, region: "", city: "" }));
+
+  if (newEntries.length === 0) {
+    showStatus(`No new developers found for "${query}" (or they're already on the board).`, null);
+    render();
+    return;
+  }
+
+  state.entries.push(...newEntries);
+  el.subtitle.textContent = `Found ${searchResult.total_count.toLocaleString()} public profiles matching "${query}" — fetching stats for ${newEntries.length}…`;
+
+  // Jump the filter to this location immediately so results appear as they stream in,
+  // instead of making the user wait for all ~100 profiles to finish fetching.
+  state.filters.country = query;
+  state.filters.region = "";
+  state.filters.city = "";
+  populateLocationOptions();
+  el.countrySelect.value = query;
+  updateRegionOptions();
+  render();
+
+  let renderQueued = false;
+  const scheduleRender = () => {
+    if (renderQueued) return;
+    renderQueued = true;
+    requestAnimationFrame(() => {
+      renderQueued = false;
+      render();
+    });
+  };
+
+  await fetchAllStats(newEntries, (dev) => {
+    if (dev) {
+      state.results.push(dev);
+      scheduleRender();
+    }
+  });
+
+  populateLanguageChips();
+  render();
+}
+
+function bindDiscovery() {
+  const run = () => {
+    const query = el.discoverInput.value.trim();
+    if (query) discoverByLocation(query);
+  };
+  el.discoverBtn.addEventListener("click", run);
+  el.discoverInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") run();
+  });
+  el.quickLocations.addEventListener("click", (e) => {
+    const chip = e.target.closest(".quick-chip");
+    if (!chip) return;
+    el.discoverInput.value = chip.dataset.location;
+    discoverByLocation(chip.dataset.location);
+  });
+}
+
 function locationFields(entry) {
   return { country: entry.country, region: entry.region || "", city: entry.city || "" };
 }
 
-async function fetchAllStats(entries) {
+async function fetchAllStats(entries, onEach) {
   const results = new Array(entries.length);
   let cursor = 0;
 
@@ -194,6 +290,7 @@ async function fetchAllStats(entries) {
       const i = cursor++;
       results[i] = await fetchDeveloperStats(entries[i]);
       el.subtitle.textContent = `Fetched ${i + 1} of ${entries.length} developers…`;
+      if (onEach) onEach(results[i]);
     }
   }
 

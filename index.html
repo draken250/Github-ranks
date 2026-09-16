@@ -25,6 +25,21 @@
       <aside class="filters" aria-label="Filters">
         <h2>Filters</h2>
 
+        <div class="field discover-field">
+          <span>Discover developers by location</span>
+          <div class="discover-row">
+            <input id="discover-input" type="text" placeholder="e.g. Rwanda" autocomplete="off" />
+            <button id="discover-btn" class="primary-btn" type="button">Search</button>
+          </div>
+          <div id="quick-locations" class="chip-list">
+            <button type="button" class="chip quick-chip" data-location="Rwanda">🇷🇼 Rwanda</button>
+          </div>
+          <p class="filters-note">
+            Pulls up to 100 real public GitHub profiles whose location matches, live from
+            GitHub's own search, and adds them to the board below.
+          </p>
+        </div>
+
         <label class="field">
           <span>Search</span>
           <input id="search-input" type="text" placeholder="Name or username…" autocomplete="off" />

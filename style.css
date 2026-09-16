@@ -159,6 +159,27 @@ a {
   gap: 6px;
 }
 
+.discover-field {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel-alt);
+}
+
+.discover-row {
+  display: flex;
+  gap: 8px;
+}
+
+.discover-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.discover-row .primary-btn {
+  white-space: nowrap;
+}
+
 .chip {
   border: 1px solid var(--border);
   background: var(--panel-alt);
