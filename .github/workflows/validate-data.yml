@@ -1,0 +1,20 @@
+name: Validate developer directory
+
+on:
+  pull_request:
+    paths:
+      - "data/developers.json"
+      - "scripts/validate-data.js"
+  push:
+    branches: [main]
+    paths:
+      - "data/developers.json"
+      - "scripts/validate-data.js"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate data/developers.json
+        run: node scripts/validate-data.js
