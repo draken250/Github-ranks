@@ -17,7 +17,7 @@
         <button id="token-btn" class="ghost-btn" title="Add a GitHub token to raise the API rate limit">
           Rate limit: <span id="rate-limit-label">unknown</span>
         </button>
-        <a class="ghost-btn" href="CONTRIBUTING.md#add-yourself-to-the-leaderboard" id="repo-link">Add yourself ↗</a>
+        <a class="ghost-btn" href="CONTRIBUTING.md" id="repo-link">Contribute ↗</a>
       </div>
     </header>
 
@@ -84,17 +84,15 @@
         <button id="reset-filters" class="ghost-btn full-width">Reset filters</button>
 
         <p class="filters-note">
-          Data comes from a community-maintained
-          <a href="data/developers.json" target="_blank" rel="noopener">directory</a>
-          plus live stats pulled from the public GitHub API in your browser.
-          Nothing is sent to a server.
+          Everything is pulled live from the public GitHub API in your browser —
+          no curated list, nothing sent to a server.
         </p>
       </aside>
 
       <section class="board">
         <div class="board-head">
           <h1>Leaderboard</h1>
-          <p id="board-subtitle" class="board-subtitle">Loading developers…</p>
+          <p id="board-subtitle" class="board-subtitle">Search a location to see ranked developers.</p>
         </div>
 
         <div id="podium" class="podium" hidden></div>

@@ -45,28 +45,10 @@ const el = {
 
 init();
 
-async function init() {
+function init() {
   bindFilterEvents();
   bindTokenDialog();
   bindDiscovery();
-
-  try {
-    const res = await fetch("data/developers.json", { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    state.entries = await res.json();
-  } catch (err) {
-    showStatus(`Could not load data/developers.json: ${err.message}`, "error");
-    el.subtitle.textContent = "Failed to load developer directory.";
-    return;
-  }
-
-  populateLocationOptions();
-  el.subtitle.textContent = `Fetching live GitHub stats for ${state.entries.length} developers…`;
-
-  const results = await fetchAllStats(state.entries);
-  state.results = results.filter(Boolean);
-
-  populateLanguageChips();
   render();
 }
 
@@ -482,7 +464,10 @@ function render() {
   const filtered = getFiltered().slice().sort((a, b) => sortValue(b) - sortValue(a));
 
   el.resultCount.textContent = filtered.length;
-  el.subtitle.textContent = `${state.results.length} of ${state.entries.length} developers loaded · ranked by ${sortLabel()}`;
+  el.subtitle.textContent =
+    state.entries.length === 0
+      ? "Search a location to see ranked developers."
+      : `${state.results.length} of ${state.entries.length} developers loaded · ranked by ${sortLabel()}`;
 
   const showPodium = filtered.length >= 3;
   renderPodium(showPodium ? filtered.slice(0, 3) : []);
@@ -514,6 +499,10 @@ function renderPodium(top3) {
 }
 
 function renderList(rest, totalCount) {
+  if (state.entries.length === 0) {
+    el.list.innerHTML = `<li class="empty-state">Search a location above (try the 🇷🇼 Rwanda button) to pull real, ranked GitHub developers.</li>`;
+    return;
+  }
   if (totalCount === 0) {
     el.list.innerHTML = `<li class="empty-state">No developers match these filters.</li>`;
     return;
