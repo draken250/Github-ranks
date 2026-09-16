@@ -16,7 +16,8 @@ followers — all powered by the public GitHub API straight from your browser.
 
 - 🔭 **Discover by location** — search GitHub live for real developers in any
   country or city (e.g. type "Rwanda")
-- 🔢 Choose how many to pull — Top 10 / 25 / 50 / 100
+- 🔢 Choose how many to pull — Top 10 / 25 / 50 / 100 / 200 / 500 / 1,000 (paginating
+  past 100 automatically; GitHub caps search at 1,000 results per query)
 - 🔎 Filter the results by name, sort by estimated commits, stars, repos, or followers
 - 🥇 Podium view for the top 3
 - 🌗 Light and dark theme (follows your system by default, toggle in the top right)
@@ -39,7 +40,8 @@ python -m http.server 8000
 
 - The search bar calls GitHub's `search/users?q=location:<query>` endpoint to find
   real public profiles matching a location, live, capped at however many you chose
-  to pull.
+  to pull. Pulling more than 100 pages through GitHub's search results (100 per
+  page) automatically, up to GitHub's hard cap of 1,000 results per query.
 - For each of those developers, `app.js` fetches their public profile and repos from
   the GitHub REST API directly from your browser (nothing goes through a server),
   aggregates languages and stars, and estimates a commit count via GitHub's commit
