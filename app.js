@@ -4,6 +4,8 @@ const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const MAX_CONCURRENT_REQUESTS = 4;
 const TOKEN_KEY = "ghranks_token";
 const THEME_KEY = "ghranks_theme";
+const SEARCH_PAGE_SIZE = 100; // GitHub's per_page max for the search API
+const SEARCH_RESULT_CAP = 1000; // GitHub only ever returns the first 1,000 matches for a query
 
 let rateLimited = false;
 
@@ -189,6 +191,46 @@ async function fetchDeveloperStats(entry) {
   }
 }
 
+async function searchUsersByLocation(query, target) {
+  const items = [];
+  let totalCount = 0;
+  let page = 1;
+
+  while (items.length < target) {
+    const perPage = Math.min(SEARCH_PAGE_SIZE, target - items.length);
+    el.subtitle.textContent = `Searching GitHub for developers located in "${query}"…${
+      page > 1 ? ` (page ${page})` : ""
+    }`;
+
+    let result;
+    try {
+      result = await githubFetch(
+        `https://api.github.com/search/users?q=${encodeURIComponent(
+          "location:" + query
+        )}&per_page=${perPage}&page=${page}&sort=followers&order=desc`,
+        { trackRateLimit: false }
+      );
+    } catch (err) {
+      if (err.status === 403 || err.status === 429) rateLimited = true;
+      if (items.length > 0) {
+        showStatus(
+          `GitHub search was rate-limited after ${items.length} results — showing what was found. Add a token (top right) for deeper searches.`,
+          "error"
+        );
+        break;
+      }
+      throw err;
+    }
+
+    totalCount = result.total_count;
+    items.push(...result.items);
+    if (result.items.length === 0 || items.length >= totalCount) break;
+    page++;
+  }
+
+  return { items, totalCount };
+}
+
 async function discoverByLocation(query, count) {
   if (rateLimited) {
     showStatus(
@@ -199,23 +241,20 @@ async function discoverByLocation(query, count) {
   }
 
   el.statusBanner.hidden = true;
+  const target = Math.min(count, SEARCH_RESULT_CAP);
   el.subtitle.textContent = `Searching GitHub for developers located in "${query}"…`;
 
-  let searchResult;
+  let items, totalCount;
   try {
-    searchResult = await githubFetch(
-      `https://api.github.com/search/users?q=${encodeURIComponent("location:" + query)}&per_page=${count}&sort=followers&order=desc`,
-      { trackRateLimit: false }
-    );
+    ({ items, totalCount } = await searchUsersByLocation(query, target));
   } catch (err) {
-    if (err.status === 403 || err.status === 429) rateLimited = true;
     showStatus(`GitHub search failed: ${err.message}`, "error");
     render();
     return;
   }
 
   const existingUsernames = new Set(state.entries.map((e) => e.username.toLowerCase()));
-  const newEntries = searchResult.items
+  const newEntries = items
     .filter((item) => !existingUsernames.has(item.login.toLowerCase()))
     .map((item) => ({ username: item.login, country: query }));
 
@@ -226,7 +265,7 @@ async function discoverByLocation(query, count) {
   }
 
   state.entries.push(...newEntries);
-  el.subtitle.textContent = `Found ${searchResult.total_count.toLocaleString()} public profiles matching "${query}" — fetching stats for ${newEntries.length}…`;
+  el.subtitle.textContent = `Found ${totalCount.toLocaleString()} public profiles matching "${query}" — fetching stats for ${newEntries.length}…`;
   render();
 
   let renderQueued = false;

@@ -254,6 +254,14 @@ a {
   margin-top: 20px;
 }
 
+.hero-note {
+  margin: 18px auto 0;
+  max-width: 460px;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
 .chip {
   border: 1px solid var(--border);
   background: var(--panel);
