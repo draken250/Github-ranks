@@ -30,13 +30,13 @@
         <span class="search-icon" aria-hidden="true">⌕</span>
         <input id="discover-input" type="text" placeholder="Search a country or city… e.g. Rwanda" autocomplete="off" />
         <select id="count-select" class="count-select" title="How many to pull">
-          <option value="10">Top 10</option>
-          <option value="25" selected>Top 25</option>
-          <option value="50">Top 50</option>
-          <option value="100">Top 100</option>
-          <option value="200">Top 200</option>
-          <option value="500">Top 500</option>
-          <option value="1000">Top 1k</option>
+          <option value="10" data-label="Top 10">Top 10</option>
+          <option value="25" data-label="Top 25" selected>Top 25</option>
+          <option value="50" data-label="Top 50">Top 50</option>
+          <option value="100" data-label="Top 100">Top 100</option>
+          <option value="200" data-label="Top 200">Top 200</option>
+          <option value="500" data-label="Top 500">Top 500</option>
+          <option value="1000" data-label="Top 1k">Top 1k</option>
         </select>
         <button type="submit" class="search-btn" aria-label="Search">→</button>
       </form>
@@ -51,8 +51,9 @@
       </div>
 
       <p class="hero-note">
-        Pulling more than 100? Add a token (top right) — GitHub's unauthenticated limit
-        runs out fast, and search only returns the first 1,000 matches anyway.
+        Without a token, GitHub's unauthenticated limit caps a search at roughly
+        <strong>25-30 profiles</strong>, no matter what count you pick. Add a token
+        (top right) for the full count you asked for.
       </p>
     </section>
 
@@ -90,11 +91,11 @@
     <form method="dialog" id="token-form">
       <h3>GitHub personal access token</h3>
       <p>
-        Unauthenticated requests are limited to 60/hour by GitHub, which is easy to hit when
-        pulling a full "Top 100". Add a token (no scopes needed — this only reads public data)
-        to raise that to 5,000/hour. It is stored only in this browser's
-        <code>localStorage</code> and sent directly to <code>api.github.com</code>, never to any
-        other server.
+        Unauthenticated requests are limited to 60/hour by GitHub — enough for roughly 25-30
+        profiles per search, regardless of the count you pick. Add a token (no scopes needed —
+        this only reads public data) to raise that to 5,000/hour. It is stored only in this
+        browser's <code>localStorage</code> and sent directly to <code>api.github.com</code>,
+        never to any other server.
       </p>
       <input id="token-input" type="password" placeholder="ghp_…" autocomplete="off" />
       <div class="dialog-actions">

@@ -6,6 +6,7 @@ const TOKEN_KEY = "ghranks_token";
 const THEME_KEY = "ghranks_theme";
 const SEARCH_PAGE_SIZE = 100; // GitHub's per_page max for the search API
 const SEARCH_RESULT_CAP = 1000; // GitHub only ever returns the first 1,000 matches for a query
+const SAFE_UNAUTHENTICATED_COUNT = 25; // ~30 profiles max fit in GitHub's 60/hour unauth limit
 
 let rateLimited = false;
 
@@ -45,7 +46,16 @@ function init() {
   bindTokenDialog();
   bindDiscovery();
   bindTheme();
+  updateCountOptions();
   render();
+}
+
+function updateCountOptions() {
+  const hasToken = Boolean(getToken());
+  for (const opt of el.countSelect.options) {
+    const needsToken = Number(opt.value) > SAFE_UNAUTHENTICATED_COUNT;
+    opt.textContent = opt.dataset.label + (needsToken && !hasToken ? " (token needed)" : "");
+  }
 }
 
 // ---------- Theme ----------
@@ -349,11 +359,13 @@ function bindTokenDialog() {
   el.tokenClear.addEventListener("click", () => {
     localStorage.removeItem(TOKEN_KEY);
     el.tokenInput.value = "";
+    updateCountOptions();
   });
   el.tokenForm.addEventListener("submit", () => {
     const value = el.tokenInput.value.trim();
     if (value) localStorage.setItem(TOKEN_KEY, value);
     else localStorage.removeItem(TOKEN_KEY);
+    updateCountOptions();
   });
 }
 
